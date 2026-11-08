@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiMo 配音台</title>
+<style>
+:root{
+  --bg:#151719; --panel:#1e2124; --panel2:#24272b; --line:#33373c;
+  --txt:#e8eaec; --sub:#9aa0a6; --dim:#6b7075;
+  --acc:#5fa8ff; --ok:#57c288; --warn:#e0a84e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.5px}
+header .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);display:inline-block}
+header .keyline{margin-left:auto;color:var(--dim);font-size:12.5px}
+header button{background:none;border:1px solid var(--line);color:var(--sub);padding:5px 14px;border-radius:7px;cursor:pointer;font-size:12.5px}
+header button:hover{border-color:var(--acc);color:var(--acc)}
+.wrap{display:grid;grid-template-columns:330px 1fr;gap:16px;padding:16px 22px;max-width:1250px;margin:0 auto}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h3{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--sub);letter-spacing:.4px}
+.tabs{display:flex;background:var(--panel2);border-radius:9px;padding:4px;margin-bottom:14px}
+.tabs div{flex:1;text-align:center;padding:7px 0;border-radius:7px;cursor:pointer;color:var(--sub);font-size:13px;user-select:none}
+.tabs div.on{background:var(--acc);color:#fff;font-weight:600}
+select,input[type=text],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font:13px/1.5 inherit;outline:none}
+select:focus,textarea:focus,input:focus{border-color:var(--acc)}
+textarea{resize:vertical}
+.row{display:flex;gap:8px;align-items:center}
+.btn{display:inline-block;background:var(--acc);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.12)}
+.btn:disabled{background:#3a434d;color:#7d858d;cursor:not-allowed}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--sub);font-weight:400;padding:7px 12px;font-size:12.5px}
+.btn.ghost:hover{border-color:var(--acc);color:var(--acc)}
+.tip{font-size:12px;color:var(--dim);line-height:1.55;margin-top:8px}
+.tagbar{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.tag{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 9px;font-size:12px;color:var(--sub);cursor:pointer;user-select:none}
+.tag:hover{border-color:var(--acc);color:var(--acc)}
+.tpl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#script{min-height:300px;font-size:14px}
+.counter{font-size:12px;color:var(--dim);text-align:right;margin-top:4px}
+.res{margin-top:14px}
+.item{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+.item .name{font-size:13px;color:var(--txt);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.item .name .meta{color:var(--dim);font-size:11.5px;font-weight:400}
+.item audio{width:100%;height:34px}
+.item a{color:var(--acc);font-size:12px;text-decoration:none;margin-left:auto}
+.err{background:#3a2626;border:1px solid #7a3b3b;color:#f0b0b0;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:13px}
+.lintbox{background:#2a2621;border:1px solid #5a4a33;color:#e5c98a;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:12.5px;line-height:1.7}
+.lintbox b{color:#f0d49a}
+.lintbox .ok{color:var(--ok)}
+.chk{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub);cursor:pointer;user-select:none;margin:0}
+.chk input{accent-color:var(--acc)}
+.warnbad{color:var(--warn)!important;font-weight:600}
+.status{margin-top:10px;color:var(--warn);font-size:13px;min-height:20px}
+details{margin-top:16px}
+summary{cursor:pointer;color:var(--sub);font-size:13px;user-select:none}
+.hist .hitem{display:flex;gap:10px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line);font-size:12.5px}
+.hist .hitem span{color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.hist .hitem audio{width:220px;height:30px}
+dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:22px;width:420px;margin:auto}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+label{font-size:12.5px;color:var(--sub);display:block;margin-bottom:5px}
+.mt{margin-top:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot" id="dot"></span> MiMo 配音台</h1>
+  <span class="keyline" id="keyline"></span>
+  <button onclick="dlg.showModal()">密钥</button>
+</header>
+
+<div class="wrap">
+  <div>
+    <div class="card">
+      <div class="tabs" id="tabs">
+        <div data-m="clone" class="on">我的音色（克隆）</div>
+        <div data-m="preset">预置音色</div>
+      </div>
+
+      <div id="cloneBox">
+        <label>音色样本</label>
+        <div class="row">
+          <select id="sampleSel" style="flex:1"></select>
+          <button class="btn ghost" onclick="filePick.click()">上传</button>
+          <input type="file" id="filePick" accept=".mp3,.wav" hidden>
+        </div>
+        <div class="tip">录 30–90 秒干净人声（房间越“软”越好，别带背景音乐）。上传一次，以后直接选。</div>
+      </div>
+
+      <div id="presetBox" style="display:none">
+        <label>预置音色</label>
+        <select id="voiceSel"></select>
+      </div>
+
+      <div class="mt">
+        <label>风格指令（可空 · 用大白话描述想要的语气）</label>
+        <textarea id="style" rows="4" placeholder="例：像老朋友聊天一样自然放松，语速适中，重点处稍微放慢，不要播音腔。"></textarea>
+        <div class="tpl" id="tpl"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>行内标签 · 点一下插到光标处</h3>
+      <div class="tip" style="margin:0 0 6px">风格标签放句子开头，音频标签放任意位置。如：<b>（叹气）这波我看错了。</b></div>
+      <div class="tagbar" id="tags"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h3>稿子</h3>
+      <textarea id="script" placeholder="把稿子粘进来。长稿会自动分段，每段生成完立刻可以试听。&#10;&#10;想控制语气就在句子里插标签，比如：&#10;（沉稳）今天聊聊黄金的两个关键位。（语速加快）先说结论……（停顿）然后我们慢慢拆。"></textarea>
+      <div class="counter" id="counter"></div>
+      <div class="row" style="margin-top:10px">
+        <label style="margin:0;white-space:nowrap">分段</label>
+        <select id="segSize" style="width:auto;flex:1">
+          <option value="300" selected>短段 300 字（语速正常，接缝多）</option>
+          <option value="500">中段 500 字（折中）</option>
+          <option value="99999">整篇一次（语气最统一，偏慢）</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="go" onclick="generate()">生成配音</button>
+        <label class="chk"><input type="checkbox" id="enh" checked> 清晰化（去闷 · 提亮 · 归一响度）</label>
+        <label class="chk"><input type="checkbox" id="cont" checked title="把上一段作为上下文一起发送，让各段语气一致"> 语气接续</label>
+        <label class="chk"><input type="checkbox" id="pick" checked title="每段多生成一次，自动保留音高最贴近第 1 段的那条（耗时翻倍，接口免费）"> 自动择优</label>
+        <span class="tip" style="margin:0" id="goHint"></span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost" onclick="lint()">稿子体检</button>
+        <button class="btn ghost" id="mergeBtn" style="display:none" onclick="mergeAll()">合并成一条</button>
+      </div>
+      <div id="lintBox"></div>
+      <div class="status" id="status"></div>
+      <div class="res" id="res"></div>
+      <details class="hist"><summary>历史记录（output 文件夹）</summary><div id="hist"></div></details>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h3 style="margin:0 0 12px;color:var(--txt)">MiMo API 密钥</h3>
+  <input type="text" id="keyInput" placeholder="sk-...">
+  <div class="tip">存在本机 config.json 里，只发往小米官方接口。platform.xiaomimimo.com 可重新生成。</div>
+  <div class="row mt">
+    <button class="btn" onclick="saveKey()">保存</button>
+    <button class="btn ghost" onclick="dlg.close()">取消</button>
+  </div>
+</dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+let mode='clone', voices=[], busy=false;
+
+const TAGS=[
+ ['(叹气)','叹气'],['[停顿]','停顿'],['(轻笑)','轻笑'],['(深呼吸)','深呼吸'],
+ ['(语速加快)','加速'],['(语速放慢)','放慢'],['(小声)','小声'],['(提高音量)','大声'],
+ ['(哽咽)','哽咽'],['(苦笑)','苦笑'],['(开心)','开心'],['(沉稳)','沉稳'],
+ ['(严肃)','严肃'],['(温柔)','温柔'],['(磁性)','磁性'],['(唱歌)','唱歌']
+];
+const TPLS=[
+ ['清晰咬字','语速中等偏慢，每个字咬清楚，句尾不要吞音也不要拖长，整段保持同样的节奏，不要越说越快。'],
+ ['日常口播','用自然的口播语气，像和老朋友聊天一样放松真诚，语速适中，咬字清楚，不要播音腔。'],
+ ['沉稳解说','声音沉稳，语速稍慢，条理清晰，像财经解说员在认真分析，重点处放慢并稍微加重，句尾收干净。'],
+ ['快节奏','语速快一点，节奏紧凑利落，但每个字必须清晰，不要含糊连读，像经验丰富的交易员在快速讲重点。'],
+ ['讲故事','娓娓道来，情绪有起伏，在关键转折处放慢并压低声音，吊住注意力，吐字要松弛但清楚。']
+];
+
+$('tags').innerHTML=TAGS.map(t=>`<div class="tag" onclick="insert('${t[0].replace(/'/g,"")}')">${t[1]}</div>`).join('');
+$('tpl').innerHTML=TPLS.map(t=>`<div class="tag" onclick="setTpl(${TPLS.indexOf(t)})">${t[0]}</div>`).join('');
+function setTpl(i){$('style').value=TPLS[i][1];}
+function insert(tag){
+  const ta=$('script'),s=ta.selectionStart,e=ta.selectionEnd;
+  ta.value=ta.value.slice(0,s)+tag+ta.value.slice(e);
+  ta.focus();ta.selectionStart=ta.selectionEnd=s+tag.length;
+  count();
+}
+const segLimit=()=>parseInt($('segSize').value)||300;
+function count(){
+  const n=$('script').value.length;
+  const lim=segLimit();
+  const seg=splitText($('script').value,lim).length;
+  $('counter').textContent=n?`${n} 字 · ${seg>1?('将分 '+seg+' 段生成'):(lim>9999?'整篇一次生成':'单段')}`:'';
+}
+$('segSize').addEventListener('change',count);
+$('script').addEventListener('input',count);
+
+$('tabs').addEventListener('click',e=>{
+  const div=e.target.closest('div[data-m]');if(!div)return;
+  mode=div.dataset.m;
+  [...$('tabs').children].forEach(d=>d.classList.toggle('on',d===div));
+  $('cloneBox').style.display=mode==='clone'?'':'none';
+  $('presetBox').style.display=mode==='preset'?'':'none';
+});
+
+/* 按句子切段：默认 300 字。
+   实测：537 字一次生成会拖成 179 秒（3.0 字/秒，黏连），
+   拆成小段是 105 秒（5.1 字/秒，正常）。段太长是“听不清”的主因。 */
+function splitText(t,limit=300){
+  const paras=t.replace(/\r/g,'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const chunks=[];let cur='';
+  const push=()=>{if(cur.trim())chunks.push(cur.trim());cur='';};
+  for(const p of paras){
+    const sents=p.match(/[^。！？!?；;]+[。！？!?；;]?/g)||[p];
+    for(let s of sents){
+      s=s.trim();if(!s)continue;
+      if((cur+s).length<=limit){cur+=s;continue;}
+      push();
+      while(s.length>limit){
+        let cut=s.lastIndexOf('，',limit);
+        if(cut<limit*.4)cut=limit-1;
+        chunks.push(s.slice(0,cut+1));s=s.slice(cut+1);
+      }
+      cur=s;
+    }
+  }
+  push();
+  return chunks.length?chunks:[''];
+}
+
+/* 稿子体检：把 TTS 最容易读错的东西提前挑出来 */
+function lint(){
+  const t=$('script').value.trim(),box=$('lintBox');
+  if(!t){box.innerHTML='<div class="lintbox">稿子是空的。</div>';return;}
+  const out=[];
+  const nums=[...new Set(t.match(/\d+(?:[.,]\d+)?/g)||[])];
+  if(nums.length)out.push(`<b>${nums.length} 种阿拉伯数字</b>：${nums.slice(0,8).join('、')}${nums.length>8?'…':''}<br>　→ 改成你想听到的读法。2150.5 想读"二一五零点五"就写汉字，别让它读成"两千一百五十点五"。`);
+  const en=[...new Set(t.match(/[A-Za-z][A-Za-z&.\-]{1,}/g)||[])];
+  if(en.length)out.push(`<b>${en.length} 个英文/缩写</b>：${en.slice(0,10).join('、')}${en.length>10?'…':''}<br>　→ 中英混读最容易发糊。CME→芝商所，L2→Level Two，FDAX→德指。`);
+  const longs=(t.match(/[^。！？!?\n]{45,}/g)||[]);
+  if(longs.length)out.push(`<b>${longs.length} 句超过 45 字没断</b><br>　→ 一口气赶完就会吞字。加逗号或句号，让它有换气点。`);
+  const odd=[...new Set(t.match(/[%‰±→←↑↓≈≤≥+\-*/=<>&@#$^_~|\\]/g)||[])];
+  if(odd.length)out.push(`<b>符号</b>：${odd.join(' ')}<br>　→ 这类符号容易被跳过或读错，写成汉字（% → 百分之，+ → 涨/加）。`);
+  const tags=(t.match(/（[^）]{1,10}）|\([^)]{1,10}\)|\[[^\]]{1,10}\]/g)||[]);
+  if(tags.length>6)out.push(`<b>标签偏多（${tags.length} 个）</b><br>　→ 标签太密会让模型顾不过来，反而念得别扭，一个段落 1-2 个够了。`);
+  const invis=(t.match(/[\u200b-\u200f\u202a-\u202e\ufeff\u00ad\x00-\x08\x0b\x0c\x0e-\x1f]/g)||[]);
+  if(invis.length)out.push(`<b>${invis.length} 个不可见字符</b><br>　→ 从网页、PDF、微信里粘稿子常会带上零宽字符，接口有可能直接拒收（HTTP 400）。生成时会自动清掉，不用担心。`);
+  box.innerHTML=out.length
+    ? `<div class="lintbox"><b style="color:#f0b0b0">发现 ${out.length} 类会让它读不清的东西：</b><br><br>${out.join('<br><br>')}</div>`
+    : `<div class="lintbox"><span class="ok">✓ 稿子很干净</span>：没有数字、英文缩写、超长句，可以直接生成。</div>`;
+}
+
+async function init(){
+  try{
+    const c=await(await fetch('/api/config')).json();
+    if(c.samples)fillSamples(c.samples);
+    if(c.voices){voices=c.voices;$('voiceSel').innerHTML=voices.map(v=>`<option value="${v.id}">${v.label}</option>`).join('');}
+    $('keyline').textContent=c.has_key?('密钥 '+c.key_masked+' · TTS 限时免费中'):'未配置密钥';
+    $('dot').style.background=c.has_key?'var(--ok)':'#c05050';
+    loadHist();
+  }catch(e){$('keyline').textContent='服务未连接';$('dot').style.background='#c05050';}
+}
+function fillSamples(list){
+  const sel=$('sampleSel'),cur=sel.value;
+  sel.innerHTML=list.length?list.map(s=>`<option value="${s}">${s}</option>`).join('')
+    :'<option value="">（还没有样本，先上传）</option>';
+  if(list.includes(cur))sel.value=cur;
+}
+
+$('filePick').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(!/\.(mp3|wav)$/i.test(f.name)){alert('只支持 mp3 / wav');e.target.value='';return;}
+  if(f.size>8*1024*1024){alert('样本超过 8MB，请裁剪后重传');e.target.value='';return;}
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const d=await(await fetch('/api/sample',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:f.name,data:r.result.split(',')[1]})})).json();
+      if(d.error){alert(d.error);return;}
+      fillSamples(d.samples);$('sampleSel').value=d.name;
+    }catch(err){alert('上传失败：'+err)}
+  };
+  r.readAsDataURL(f);e.target.value='';
+});
+
+async function saveKey(){
+  const k=$('keyInput').value.trim();if(!k)return;
+  await fetch('/api/key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})});
+  dlg.close();init();
+}
+
+async function generate(){
+  if(busy)return;
+  const text=$('script').value.trim();
+  if(!text){$('status').textContent='稿子是空的';return;}
+  if(mode==='clone'&&!$('sampleSel').value){$('status').textContent='先上传并选择你的音色样本';return;}
+  const style=$('style').value.trim();
+  const enhance=$('enh').checked;
+  const cont=$('cont').checked;
+  const chunks=splitText(text,segLimit());
+  const pick=$('pick').checked&&chunks.length>1;
+  busy=true;$('go').disabled=true;$('res').innerHTML='';$('status').textContent='';
+  $('mergeBtn').style.display='none';generated=[];jobs=[];anchorF0=null;
+  let allOk=true;
+  for(let i=0;i<chunks.length;i++){
+    const prev=cont?chunks.slice(Math.max(0,i-2),i):[];
+    const one=async()=>{
+      const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode,text:chunks[i],style,title:text.slice(0,10),enhance,prev,
+          sample:$('sampleSel').value,voice:$('voiceSel').value})});
+      return r.json();
+    };
+    try{
+      let d=null,dropped=0;
+      const n=pick?2:1;
+      for(let k=0;k<n;k++){
+        $('status').textContent=`生成中 · 第 ${i+1}/${chunks.length} 段${n>1?`（第 ${k+1}/${n} 次，择优）`:''}${cont&&i>0?' · 接续语气':''}${enhance?' · 清晰化':''}…`;
+        const cur=await one();
+        if(cur.error){$('res').insertAdjacentHTML('beforeend',`<div class="err">第 ${i+1} 段失败：${cur.error}</div>`);allOk=false;break;}
+        if(!d){d=cur;continue;}
+        const base=anchorF0||d.metrics&&d.metrics.f0||0;
+        const dev=x=>Math.abs(((x.metrics&&x.metrics.f0)||base)-base);
+        if(dev(cur)<dev(d)){delFile(d.filename);dropped++;d=cur;}
+        else{delFile(cur.filename);dropped++;}
+      }
+      if(!allOk)break;
+      generated.push(d.filename);
+      jobs.push({i,text:chunks[i],prev,style,enhance,mode,last:d.filename});
+      $('res').insertAdjacentHTML('beforeend',itemHTML(d,i,chunks.length,dropped));
+    }catch(e){$('res').insertAdjacentHTML('beforeend',`<div class="err">第 ${i+1} 段网络错误：${e}</div>`);allOk=false;break;}
+  }
+  if(allOk&&chunks.length>1&&generated.length>1)$('mergeBtn').style.display='';
+  $('status').textContent=allOk?(chunks.length>1?'全部完成。分段拖进剪映按顺序排，或者点「合并成一条」直接出一整条':'完成，可试听后下载'):'' ;
+  busy=false;$('go').disabled=false;loadHist();
+}
+async function delFile(name){
+  try{await fetch('/api/delete_output',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name})});}catch(e){}
+}
+let generated=[],jobs=[];
+/* 单段重生成：接续不理想时重摇一次，试两次基本就能挑出贴合的那条 */
+async function regen(i){
+  const j=jobs.find(x=>x.i===i);if(!j)return;
+  const box=$('item-'+i);if(!box)return;
+  const old=box.innerHTML;
+  box.innerHTML='<div class="name">第 '+(i+1)+' 段 · 重新生成中…</div>';
+  try{
+    const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:j.mode,text:j.text,style:j.style,enhance:j.enhance,prev:j.prev,
+        title:j.text.slice(0,10),sample:$('sampleSel').value,voice:$('voiceSel').value})});
+    const d=await r.json();
+    if(d.error){box.innerHTML=old;$('status').textContent='重生成失败：'+d.error;return;}
+    generated[j.i]=d.filename;j.last=d.filename;
+    box.innerHTML=itemBody(d,i);loadHist();
+  }catch(e){box.innerHTML=old;$('status').textContent='重生成出错：'+e;}
+}
+async function mergeAll(){
+  if(!generated.length)return;
+  $('status').textContent='正在合并…';
+  try{
+    const d=await(await fetch('/api/concat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({files:generated.filter(Boolean),title:$('script').value.trim().slice(0,10)})})).json();
+    if(d.error){$('status').textContent='合并失败：'+d.error;return;}
+    $('status').textContent=`已合并 ${d.count} 段，共 ${d.seconds} 秒`;
+    $('res').insertAdjacentHTML('afterbegin',itemHTML({filename:d.filename,seconds:'合并'},-1,1));
+    loadHist();
+  }catch(e){$('status').textContent='合并出错：'+e;}
+}
+function itemHTML(d,i,total,dropped){
+  const idx=(total>1&&i>=0)?`第 ${i+1}/${total} 段 · `:'';
+  const enh=d.enhance&&d.enhance.applied
+    ? `<span class="meta" title="响度 ${d.enhance.rms_before} → ${d.enhance.rms_after} dBFS">· 清晰化 ✓</span>`:'';
+  const pk=dropped?`<span class="meta">· 择优 2 取 1</span>`:'';
+  const re=(i>=0)?`<button class="btn ghost" style="padding:3px 9px;font-size:11.5px;margin-left:8px" onclick="regen(${i})">重生成</button>`:'';
+  return `<div class="item" id="item-${i}"><div class="name">${idx}<b>${d.filename}</b><span class="meta">${d.seconds}s</span>${devTag(d.metrics,i)}${enh}${pk}${re}<a href="/output/${encodeURIComponent(d.filename)}" download="${d.filename}">下载</a></div><audio controls preload="none" src="/output/${encodeURIComponent(d.filename)}"></audio></div>`;
+}
+/* 一致性体检：以第 1 段音高为基准，偏差 >10% 标黄（GPT-SoVITS 社区的验收线） */
+let anchorF0=null;
+function devTag(m,i){
+  if(!m||!m.f0)return '';
+  if(i<=0||!anchorF0){anchorF0=m.f0;return `<span class="meta">· 音高 ${m.f0}Hz · ${m.rate} 字/秒 · ${m.rms}dB</span>`;}
+  const dev=Math.abs(m.f0-anchorF0)/anchorF0*100;
+  return `<span class="meta${dev>10?' warnbad':''}" title="基准 ${anchorF0}Hz">· 音高 ${m.f0}Hz（${dev>10?'差 '+dev.toFixed(0)+'%，建议重生成':'差 '+dev.toFixed(0)+'%'}）· ${m.rate} 字/秒</span>`;
+}
+function itemBody(d,i){
+  const enh=d.enhance&&d.enhance.applied?`<span class="meta">· 清晰化 ✓</span>`:'';
+  return `<div class="name"><b>${d.filename}</b><span class="meta">${d.seconds}s</span>${devTag(d.metrics,i)}${enh}<button class="btn ghost" style="padding:3px 9px;font-size:11.5px;margin-left:8px" onclick="regen(${i})">重生成</button><a href="/output/${encodeURIComponent(d.filename)}" download="${d.filename}">下载</a></div><audio controls preload="none" src="/output/${encodeURIComponent(d.filename)}"></audio>`;
+}
+async function loadHist(){
+  try{
+    const d=await(await fetch('/api/history')).json();
+    $('hist').innerHTML=d.items.length?d.items.map(x=>
+      `<div class="hitem"><span title="${x.name}">${x.name}</span><audio controls preload="none" src="/output/${encodeURIComponent(x.name)}"></audio><button class="btn ghost" style="padding:3px 8px;font-size:11.5px" onclick="fixOne('${x.name.replace(/'/g,'')}')">清晰化</button></div>`).join('')
+      :'<div class="tip">还没有生成过</div>';
+  }catch(e){}
+}
+async function fixOne(name){
+  $('status').textContent='正在清晰化：'+name+' …';
+  try{
+    const d=await(await fetch('/api/enhance_file',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name})})).json();
+    if(d.error){$('status').textContent='失败：'+d.error;return;}
+    $('status').textContent=`处理完成 ${d.filename}（响度 ${d.enhance.rms_before} → ${d.enhance.rms_after} dBFS）`;
+    $('res').insertAdjacentHTML('afterbegin',itemHTML({filename:d.filename,seconds:'清晰化',enhance:d.enhance},-1,1));
+    loadHist();
+  }catch(e){$('status').textContent='出错：'+e;}
+}
+init();
+</script>
+</body>
+</html>

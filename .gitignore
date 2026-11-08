@@ -1,0 +1,6 @@
+config.json
+output/
+samples/
+错误日志.txt
+__pycache__/
+*.py[cod]
